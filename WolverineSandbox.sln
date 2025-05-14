@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WolverineSandbox.WebApi", "WolverineSandbox.WebApi\WolverineSandbox.WebApi.csproj", "{9F433A48-53DD-452F-8ADD-9ED5C453AF9A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9F433A48-53DD-452F-8ADD-9ED5C453AF9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F433A48-53DD-452F-8ADD-9ED5C453AF9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F433A48-53DD-452F-8ADD-9ED5C453AF9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F433A48-53DD-452F-8ADD-9ED5C453AF9A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5C676CDD-BE7C-418B-A6DF-B9AB687D4F38}
+	EndGlobalSection
+EndGlobal
