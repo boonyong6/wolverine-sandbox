@@ -1,11 +1,20 @@
-using Oakton;
+using JasperFx;
+using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using WolverineSandbox.Domain.Repositories;
 using WolverineSandbox.WebApi.Commands;
+using WolverineSandbox.WebApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseSqlServer(connectionString);
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -16,7 +25,12 @@ builder.Services.AddSwaggerGen();
 // For now, this is enough to integrate Wolverine into
 // your application, but there'll be "many" more
 // options later of course.
-builder.Host.UseWolverine();
+builder.Host.UseWolverine(options =>
+{
+    //// NOTE: Not sure how to use yet. Maybe have to use it with a message broker.
+    //// Right here, tell Wolverine to make every handler "sticky"
+    //options.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
+});
 
 // Step 2:
 // Some in memory services for our application, the 
@@ -42,7 +56,9 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
+app.MapControllers();
+
 // Opt into using Oakton for command line parsing
 // to unlock built in diagnostics and utility tools within
 // your Wolverine application.
-return await app.RunOaktonCommands(args);
+return await app.RunJasperFxCommands(args);
