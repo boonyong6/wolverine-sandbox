@@ -73,3 +73,55 @@
 
 - **Alternative** - Can use `[Before]` or `[After]` attributes with more descriptive method names.
 - \*Wolverine will **reorder** the methods when one method produces an input to another method.
+
+# Messaging
+
+## Introduction to Messaging - Getting Started with Wolverine as Message Bus
+
+- Info: Can connect to multiple message broker instances from one app.
+
+### Configuring Messaging
+
+- Components to configure:
+  1. **Connectivity** (to external transports)
+       - Configure via an extension method on `WolverineOptions` using the `Use[ToolName]()`. 
+  2. **Listening endpoints**
+  3. **Routing rules** - Where and how to send/publish messages.
+- Supported transports:
+  - [TCP transport](https://wolverinefx.net/guide/messaging/transports/tcp.html)
+  - ["local" in memory queues](https://wolverinefx.net/guide/messaging/transports/local.html)
+  - **External infrastructure** - RabbitMQ, Azure Service Bus, Amazon SQS, Amazon SNS, Google PubSub, Apache Pulsar, Sql Server, PostgreSQL, MQTT, Kafka, External Database Tables
+
+## Sending Messages with IMessageBus
+
+- Main entry point - `IMessageBus`
+- Second abstraction - `IMessageContext`
+  - Can be optionally consumed within message handlers to add some extra operations and metadata.
+- Sample usage of the **most common operations**:
+
+  ```csharp
+  public static async Task use_message_bus(IMessageBus bus)
+  {
+      // Execute this command message right now! And wait until
+      // it's completed or acknowledged
+      await bus.InvokeAsync(new DebitAccount(1111, 100));
+
+      // Execute this message right now, but wait for the declared response
+      var status = await bus.InvokeAsync<AccountStatus>(new DebitAccount(1111, 250));
+
+      // Send the message expecting there to be at least one subscriber to be executed later, but
+      // don't wait around
+      await bus.SendAsync(new DebitAccount(1111, 250));
+
+      // Or instead, publish it to any interested subscribers,
+      // but don't worry about it if there are actually any subscribers
+      // This is probably best for raising event messages
+      await bus.PublishAsync(new DebitAccount(1111, 300));
+
+      // Send a message to be sent or executed at a specific time
+      await bus.ScheduleAsync(new DebitAccount(1111, 100), DateTimeOffset.UtcNow.AddDays(1));
+
+      // Or do the same, but this time express the time as a delay
+      await bus.ScheduleAsync(new DebitAccount(1111, 225), 1.Days());
+  }
+  ```

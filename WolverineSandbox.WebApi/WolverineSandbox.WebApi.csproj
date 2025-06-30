@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>41989ed6-3bce-4937-afcf-4644f16d4b05</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +18,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-    <PackageReference Include="WolverineFx" Version="4.4.0" />
+    <PackageReference Include="WolverineFx" Version="4.5.0" />
+    <PackageReference Include="WolverineFx.AzureServiceBus" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

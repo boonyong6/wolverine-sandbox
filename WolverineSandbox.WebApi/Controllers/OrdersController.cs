@@ -23,7 +23,7 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<Result<OrderCreated>> Create([FromBody] CreateOrderRequest request)
     {
-        CreateOrder command = new(request.TotalAmount, request.CustomerId);
+        CreateOrder command = new(request.TotalAmount, request.regionCode, request.CustomerId);
 
         // NOTE: If the response (e.g. OrderCreated) is not captured, Wolverine
         // will automatically cascade the response to its handlers (if any).
@@ -41,5 +41,5 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(decimal TotalAmount, Guid? CustomerId = null);
+public record CreateOrderRequest(decimal TotalAmount, string regionCode, Guid? CustomerId = null);
 public record ShipOrderRequest(Guid CustomerId);

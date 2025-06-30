@@ -1,6 +1,9 @@
+using Azure.Messaging.ServiceBus.Administration;
 using JasperFx;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
+using Wolverine.AzureServiceBus;
+using WolverineSandbox.Domain.Events;
 using WolverineSandbox.Domain.Repositories;
 using WolverineSandbox.WebApi.Commands;
 using WolverineSandbox.WebApi.Data;
@@ -30,6 +33,23 @@ builder.Host.UseWolverine(options =>
     //// NOTE: Not sure how to use yet. Maybe have to use it with a message broker.
     //// Right here, tell Wolverine to make every handler "sticky"
     //options.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
+
+    string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"]
+        ?? throw new InvalidOperationException("`AzureServiceBus:ConnectionString` is not configured.");
+
+    options.UseAzureServiceBus(connectionString)
+        .AutoProvision();
+
+    // Configure message's destination, such as a topic or queue.
+    options.PublishMessage<OrderCreated>().ToAzureServiceBusTopic("wolverinesandbox-ordercreated-dev");
+
+    // Configure listening endpoint for the consumer.
+    options.ListenToAzureServiceBusSubscription("wolverinesandbox-orderprocessor-mys-dev",
+        configureSubscriptionRule: rule =>
+        {
+            rule.Filter = new SqlRuleFilter("regionCode = 'MYS'");
+        })
+        .FromTopic("wolverinesandbox-ordercreated-dev");
 });
 
 // Step 2:
