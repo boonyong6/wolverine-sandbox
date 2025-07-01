@@ -1,5 +1,7 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Wolverine.EntityFrameworkCore;
 using WolverineSandbox.WebApi.Entities;
 
 namespace WolverineSandbox.WebApi.Data;
@@ -14,9 +16,22 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        optionsBuilder.LogTo(Console.WriteLine, [RelationalEventId.CommandExecuting])
+            .EnableSensitiveDataLogging() // Include SQL parameters.
+            .EnableDetailedErrors();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // This enables your DbContext to map the incoming and
+        // outgoing messages as part of the outbox
+        modelBuilder.MapWolverineEnvelopeStorage();
 
         SetBogusRandomizerSeed();
         List<Customer> seedCustomers = new();

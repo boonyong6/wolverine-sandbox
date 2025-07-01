@@ -1,5 +1,6 @@
 ﻿using Ardalis.Result;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 using WolverineSandbox.Domain.Events;
 using WolverineSandbox.WebApi.Data;
 using WolverineSandbox.WebApi.Entities;
@@ -32,8 +33,7 @@ public class CreateOrderHandler
 
     public async Task<Result<OrderCreated>> HandleAsync(
         CreateOrder command, 
-        ApplicationDbContext dbContext, 
-        IMessageBus bus,
+        IDbContextOutbox<ApplicationDbContext> outbox,
         ICollection<ValidationError> errors)
     {
         if (errors.Count > 0)
@@ -41,21 +41,38 @@ public class CreateOrderHandler
             return Result<OrderCreated>.Invalid(errors);
         }
 
-        Order order = new()
+        await using var transaction = await outbox.DbContext.Database.BeginTransactionAsync();
+
+        try
         {
-            CustomerId = command.CustomerId,
-            OrderDate = DateTimeOffset.UtcNow,
-            TotalAmount = command.TotalAmount
-        };
-        dbContext.Orders.Add(order);
+            Order order = new()
+            {
+                CustomerId = command.CustomerId,
+                OrderDate = DateTimeOffset.UtcNow,
+                TotalAmount = command.TotalAmount
+            };
+            outbox.DbContext.Orders.Add(order);
 
-        await dbContext.SaveChangesAsync();
+            await outbox.DbContext.SaveChangesAsync();
 
-        // Problem: Order Id is not set until SaveChangesAsync is called due to the database generated Id.
-        OrderCreated orderCreated = new(order.Id, command.regionCode);
-        await bus.PublishAsync(orderCreated, 
-            new DeliveryOptions().WithHeader("regionCode", command.regionCode));
+            // Problem: Order Id is not set until SaveChangesAsync is called due to the database generated Id.
+            OrderCreated orderCreated = new(order.Id, command.regionCode);
+            await outbox.PublishAsync(orderCreated,
+                new DeliveryOptions().WithHeader("regionCode", command.regionCode));
 
-        return Result<OrderCreated>.Created(orderCreated);
+            await outbox.DbContext.SaveChangesAsync();
+
+            //throw new InvalidOperationException("Simulate exception");
+
+            await transaction.CommitAsync();
+            await outbox.FlushOutgoingMessagesAsync();
+
+            return Result<OrderCreated>.Created(orderCreated);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }

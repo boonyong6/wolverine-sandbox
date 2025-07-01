@@ -3,6 +3,8 @@ using JasperFx;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.AzureServiceBus;
+using Wolverine.EntityFrameworkCore;
+using Wolverine.SqlServer;
 using WolverineSandbox.Domain.Events;
 using WolverineSandbox.Domain.Repositories;
 using WolverineSandbox.WebApi.Commands;
@@ -12,11 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+string sqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(sqlConnectionString);
 });
 
 builder.Services.AddControllers();
@@ -28,7 +30,7 @@ builder.Services.AddSwaggerGen();
 // For now, this is enough to integrate Wolverine into
 // your application, but there'll be "many" more
 // options later of course.
-builder.Host.UseWolverine(options =>
+builder.Host.UseWolverine(opts =>
 {
     //// NOTE: Not sure how to use yet. Maybe have to use it with a message broker.
     //// Right here, tell Wolverine to make every handler "sticky"
@@ -37,19 +39,29 @@ builder.Host.UseWolverine(options =>
     string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"]
         ?? throw new InvalidOperationException("`AzureServiceBus:ConnectionString` is not configured.");
 
-    options.UseAzureServiceBus(connectionString)
+    opts.UseAzureServiceBus(connectionString)
         .AutoProvision();
 
     // Configure message's destination, such as a topic or queue.
-    options.PublishMessage<OrderCreated>().ToAzureServiceBusTopic("wolverinesandbox-ordercreated-dev");
+    opts.PublishMessage<OrderCreated>().ToAzureServiceBusTopic("wolverinesandbox-ordercreated-dev")
+        .UseDurableOutbox();
 
     // Configure listening endpoint for the consumer.
-    options.ListenToAzureServiceBusSubscription("wolverinesandbox-orderprocessor-mys-dev",
+    opts.ListenToAzureServiceBusSubscription("wolverinesandbox-orderprocessor-mys-dev",
         configureSubscriptionRule: rule =>
         {
             rule.Filter = new SqlRuleFilter("regionCode = 'MYS'");
         })
-        .FromTopic("wolverinesandbox-ordercreated-dev");
+        .FromTopic("wolverinesandbox-ordercreated-dev")
+        .UseDurableInbox();
+
+    // You'll need to independently tell Wolverine where and how to 
+    // store messages as part of the transactional inbox/outbox
+    opts.PersistMessagesWithSqlServer(sqlConnectionString);
+
+    // Adding EF Core transactional middleware, saga support,
+    // and EF Core support for Wolverine storage operations
+    opts.UseEntityFrameworkCoreTransactions();
 });
 
 // Step 2:
