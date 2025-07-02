@@ -29,9 +29,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // This enables your DbContext to map the incoming and
-        // outgoing messages as part of the outbox
-        modelBuilder.MapWolverineEnvelopeStorage();
+        //// This is not needed when `opts.Services.AddDbContextWithWolverineManagedMultiTenancy` is used.
+        //// This enables your DbContext to map the incoming and
+        //// outgoing messages as part of the outbox
+        //modelBuilder.MapWolverineEnvelopeStorage();
 
         SetBogusRandomizerSeed();
         List<Customer> seedCustomers = new();

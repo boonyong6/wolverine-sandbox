@@ -14,13 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-string sqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(sqlConnectionString);
-});
-
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -47,17 +40,36 @@ builder.Host.UseWolverine(opts =>
         .UseDurableOutbox();
 
     // Configure listening endpoint for the consumer.
-    opts.ListenToAzureServiceBusSubscription("wolverinesandbox-orderprocessor-mys-dev",
-        configureSubscriptionRule: rule =>
+    opts.ListenToAzureServiceBusSubscription("wolverinesandbox-orderprocessor-mys-dev"
+        , configureSubscriptionRule: rule =>
         {
-            rule.Filter = new SqlRuleFilter("regionCode = 'MYS'");
-        })
+            // Use double quotes to enclose the property name with special characters.
+            rule.Filter = new SqlRuleFilter("\"tenant-id\" = 'MYS'");
+        }
+        )
         .FromTopic("wolverinesandbox-ordercreated-dev")
         .UseDurableInbox();
 
-    // You'll need to independently tell Wolverine where and how to 
-    // store messages as part of the transactional inbox/outbox
-    opts.PersistMessagesWithSqlServer(sqlConnectionString);
+    string mainSqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    string mysSqlConnectionString = builder.Configuration.GetConnectionString("MYS")
+        ?? throw new InvalidOperationException("Connection string 'MYS' not found.");
+    string idnSqlConnectionString = builder.Configuration.GetConnectionString("IDN")
+        ?? throw new InvalidOperationException("Connection string 'IDN' not found.");
+
+    // First, you do have to have a "main" PostgreSQL database for messaging persistence
+    // that will store information about running nodes, agents, and non-tenanted operations
+    opts.PersistMessagesWithSqlServer(mainSqlConnectionString)
+        .RegisterStaticTenants(tenants =>
+        {
+            tenants.Register("MYS", mysSqlConnectionString);
+            tenants.Register("IDN", idnSqlConnectionString);
+        });
+
+    opts.Services.AddDbContextWithWolverineManagedMultiTenancy<ApplicationDbContext>((builder, connectionString, _) =>
+    {
+        builder.UseSqlServer(connectionString.Value);
+    });
 
     // Adding EF Core transactional middleware, saga support,
     // and EF Core support for Wolverine storage operations

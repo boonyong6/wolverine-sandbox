@@ -1,4 +1,5 @@
 ﻿using Ardalis.Result;
+using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using WolverineSandbox.Domain.Events;
@@ -11,6 +12,8 @@ public class CreateOrderHandler
 {
     public static async Task<ICollection<ValidationError>> ValidateAsync(CreateOrder command, ApplicationDbContext dbContext)
     {
+        string? connectionString = dbContext.Database.GetConnectionString();
+
         List<ValidationError> errors = Enumerable.Empty<ValidationError>().ToList();
 
         if (command.CustomerId is null)
